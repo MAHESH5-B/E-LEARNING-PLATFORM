@@ -6,7 +6,7 @@ const AuthContext = createContext();
 export function AuthProvider({ children }) {
   const [state, dispatch] = useReducer(authReducer, initialAuthState, () => {
     const savedAuth = localStorage.getItem("APP_AUTH");
-    const auth = savedAuth ? JSON.parse(savedAuth) : { isAuthenticated: false, user: null, token: null, error: null };
+    const auth = savedAuth ? JSON.parse(savedAuth) : { isAuthenticated: false, user: null, error: null };
     return auth;
   });
 
@@ -15,48 +15,46 @@ export function AuthProvider({ children }) {
       isAuthenticated: state.isAuthenticated,
       user: state.user,
       error: state.error,
-      token: state.token,
     }));
   }, [state]);
 
+  const getUsers = () => {
+    const users = localStorage.getItem("APP_USERS");
+    return users ? JSON.parse(users) : [];
+  };
+
+  const saveUsers = (users) => {
+    localStorage.setItem("APP_USERS", JSON.stringify(users));
+  };
+
   const signup = async (data) => {
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:4000"}/api/auth/signup`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      const body = await res.json();
-      if (!res.ok) {
-        dispatch({ type: "SET_ERROR", payload: body.error || "Signup failed" });
-        return false;
-      }
-      dispatch({ type: "SIGNUP", payload: { user: body.user, token: body.token } });
-      return true;
-    } catch (err) {
-      dispatch({ type: "SET_ERROR", payload: "Signup failed" });
+    if (data.password !== data.confirmPassword) {
+      dispatch({ type: "SET_ERROR", payload: "Passwords do not match" });
       return false;
     }
+    const users = getUsers();
+    const existingUser = users.find(user => user.email === data.email);
+    if (existingUser) {
+      dispatch({ type: "SET_ERROR", payload: "User already exists" });
+      return false;
+    }
+    const newUser = { ...data, id: Date.now() };
+    delete newUser.confirmPassword;
+    users.push(newUser);
+    saveUsers(users);
+    dispatch({ type: "SIGNUP", payload: { user: newUser } });
+    return true;
   };
 
   const login = async (data) => {
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:4000"}/api/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      const body = await res.json();
-      if (!res.ok) {
-        dispatch({ type: "SET_ERROR", payload: body.error || "Invalid email or password" });
-        return false;
-      }
-      dispatch({ type: "LOGIN", payload: { user: body.user, token: body.token } });
-      return true;
-    } catch (err) {
-      dispatch({ type: "SET_ERROR", payload: "Login failed" });
+    const users = getUsers();
+    const user = users.find(u => u.email === data.email && u.password === data.password);
+    if (!user) {
+      dispatch({ type: "SET_ERROR", payload: "Invalid email or password" });
       return false;
     }
+    dispatch({ type: "LOGIN", payload: { user } });
+    return true;
   };
 
   const logout = () => {
@@ -64,17 +62,28 @@ export function AuthProvider({ children }) {
   };
 
   const updateUser = (userId, updates) => {
-    // TODO: implement backend update endpoint when ready
-    dispatch({ type: "SET_ERROR", payload: "Update user not implemented" });
+    const users = getUsers();
+    const index = users.findIndex(u => u.id === userId);
+    if (index !== -1) {
+      users[index] = { ...users[index], ...updates };
+      saveUsers(users);
+      if (state.user && state.user.id === userId) {
+        dispatch({ type: "LOGIN", payload: { user: users[index] } });
+      }
+    }
   };
 
   const removeUser = (userId) => {
-    // TODO: implement backend delete endpoint when ready
-    dispatch({ type: "SET_ERROR", payload: "Remove user not implemented" });
+    const users = getUsers();
+    const filteredUsers = users.filter(u => u.id !== userId);
+    saveUsers(filteredUsers);
+    if (state.user && state.user.id === userId) {
+      logout();
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ ...state, signup, login, logout, updateUser, removeUser }}>
+    <AuthContext.Provider value={{ ...state, signup, login, logout, updateUser, removeUser, users: getUsers() }}>
       {children}
     </AuthContext.Provider>
   );

@@ -9,10 +9,6 @@ export default function SignupForm() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (form.password !== form.confirmPassword) {
-      dispatch({ type: "SET_ERROR", payload: "Passwords do not match" });
-      return;
-    }
     signup(form).then((success) => {
       if (success) {
         navigate(`/dashboard/${form.role}`);
