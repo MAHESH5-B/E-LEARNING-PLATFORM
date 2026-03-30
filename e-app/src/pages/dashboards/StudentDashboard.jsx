@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import Profile from "../Profile";
+import CourseList from "../../components/courses/CourseList";
+import CoursePlayer from "../../components/courses/CoursePlayer";
 
 export default function StudentDashboard() {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [selectedCourse,setSelectedCourse]=useState(null);
 
   // Data
   const [courses, setCourses] = useState(() => JSON.parse(localStorage.getItem("APP_COURSES") || "[]"));
@@ -196,21 +199,15 @@ export default function StudentDashboard() {
 
           {activeTab === "browse" && (
             <div>
-              <h2 className="mb-4">Browse Courses</h2>
-              <div className="row">
-                {availableCourses.map(course => (
-                  <div key={course.id} className="col-md-4 mb-4">
-                    <div className="card shadow h-100">
-                      <div className="card-body">
-                        <h5 className="card-title">{course.title}</h5>
-                        <p className="card-text">{course.description}</p>
-                        <p className="text-muted">Instructor: {course.instructorName}</p>
-                        <button className="btn btn-success" onClick={() => enroll(course.id)}>Enroll Now</button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <h2 className="mb-4 fw-bold text-dark">Explore New Skills</h2>
+              {/* We pass the availableCourses and a function to 'View' them */}
+              <CourseList 
+                courses={availableCourses} 
+                onViewCourse={(course) => {
+                  setSelectedCourse(course);
+                  setActiveTab("view-course"); // We will create this tab next!
+                }} 
+              />
             </div>
           )}
 
@@ -249,6 +246,16 @@ export default function StudentDashboard() {
                 </div>
               </div>
             </div>
+          )}
+
+          {activeTab === "view-course" && selectedCourse && (
+            <CoursePlayer 
+              course={selectedCourse} 
+              onBack={() => {
+                setSelectedCourse(null);
+                setActiveTab("browse"); // Go back to the list
+              }} 
+            />
           )}
         </div>
       </div>
