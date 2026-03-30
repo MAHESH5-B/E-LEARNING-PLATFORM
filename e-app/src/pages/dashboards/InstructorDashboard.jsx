@@ -2,6 +2,10 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import ManualQuizCreator from "../../components/forms/ManualQuizCreator";
 import InstructorProfile from "../InstructorProfile";
+// --- NEW IMPORTS ---
+import CourseForm from "../../components/courses/CourseForm"; 
+import CourseCard from "../../components/courses/CourseCard";
+import CoursePlayer from "../../components/courses/CoursePlayer";
 export default function InstructorDashboard() {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -11,6 +15,7 @@ export default function InstructorDashboard() {
   const [enrollments, setEnrollments] = useState(() => JSON.parse(localStorage.getItem("APP_ENROLLMENTS") || "[]"));
   const [quizzes, setQuizzes] = useState(() => JSON.parse(localStorage.getItem("APP_QUIZZES") || "[]"));
   const [complaints, setComplaints] = useState(() => JSON.parse(localStorage.getItem("APP_COMPLAINTS") || "[]"));
+  const [selectedCourse,setSelectedCourse]=useState(null);
 
   useEffect(() => {
     localStorage.setItem("APP_COURSES", JSON.stringify(courses));
@@ -32,16 +37,32 @@ export default function InstructorDashboard() {
   const myEnrollments = enrollments.filter(e => myCourses.some(c => c.id === e.courseId));
   const myQuizzes = quizzes.filter(q => myCourses.some(c => c.id === q.courseId));
 
-  const addCourse = (course) => {
-    setCourses([...courses, { ...course, id: Date.now(), instructorId: user.id, instructorName: user.name }]);
+  // --- UPDATED ADD COURSE LOGIC ---
+  const addCourse = (courseData) => {
+    const newFullCourse = { 
+      ...courseData, 
+      id: Date.now().toString(), 
+      instructorId: user.id, 
+      instructorName: user.name,
+      isMandatory: false 
+    };
+    setCourses([...courses, newFullCourse]);
+    setActiveTab("courses"); // Redirect to list after adding
+    alert("Course Published Successfully!");
   };
 
   const addQuiz = (quiz) => {
     setQuizzes([...quizzes, { ...quiz, id: Date.now() }]);
   };
-
-  const fileComplaint = (complaint) => {
-    setComplaints([...complaints, { id: Date.now(), userId: user.id, userName: user.name, complaint, status: 'pending' }]);
+  const deleteCourse = (courseId) => {
+    if (window.confirm("Are you sure you want to delete this course? All enrollment data for this course will be lost.")) {
+      const updatedCourses = courses.filter(c => c.id !== courseId);
+      setCourses(updatedCourses);
+      
+      // Also clean up enrollments related to this course
+      const updatedEnrollments = enrollments.filter(e => e.courseId !== courseId);
+      setEnrollments(updatedEnrollments);
+    }
   };
 
   const totalCourses = myCourses.length;
@@ -56,13 +77,10 @@ export default function InstructorDashboard() {
           <a className="navbar-brand fw-bold" href="#">
             <i className="bi bi-mortarboard me-2"></i>E-Learning Platform
           </a>
-          <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span className="navbar-toggler-icon"></span>
-          </button>
           <div className="collapse navbar-collapse" id="navbarNav">
             <ul className="navbar-nav ms-auto">
               <li className="nav-item">
-                <span className="nav-link">Welcome, {user.name}</span>
+                <span className="nav-link text-white">Welcome, {user.name}</span>
               </li>
               <li className="nav-item">
                 <button className="btn btn-outline-light ms-2" onClick={logout}>Logout</button>
@@ -78,37 +96,38 @@ export default function InstructorDashboard() {
           <h5 className="text-primary mb-4">Instructor Menu</h5>
           <ul className="nav flex-column">
             <li className="nav-item mb-2">
-              <button className={`nav-link btn btn-link text-start ${activeTab !== "dashboard" ? "text-dark fw-bold" : "text-primary"}`} onClick={() => setActiveTab("dashboard")}>
+              <button className={`nav-link btn btn-link text-start w-100 ${activeTab === "dashboard" ? "text-primary fw-bold" : "text-dark"}`} onClick={() => setActiveTab("dashboard")}>
                 <i className="bi bi-house-door me-2"></i>Dashboard
               </button>
             </li>
             <li className="nav-item mb-2">
-              <button className={`nav-link btn btn-link text-start ${activeTab !== "courses" ? "text-dark fw-bold" : "text-primary"}`} onClick={() => setActiveTab("courses")}>
+              <button className={`nav-link btn btn-link text-start w-100 ${activeTab === "all-platform-courses" ? "text-primary fw-bold" : "text-dark"}`} 
+                onClick={() => setActiveTab("all-platform-courses")}>
+                <i className="bi bi-globe me-2"></i>Platform Courses
+              </button>
+            </li>
+            <li className="nav-item mb-2">
+              <button className={`nav-link btn btn-link text-start w-100 ${activeTab === "courses" ? "text-primary fw-bold" : "text-dark"}`} onClick={() => setActiveTab("courses")}>
                 <i className="bi bi-collection me-2"></i>My Courses
               </button>
             </li>
             <li className="nav-item mb-2">
-              <button className={`nav-link btn btn-link text-start ${activeTab !== "create-course" ? "text-dark fw-bold" : "text-primary"}`} onClick={() => setActiveTab("create-course")}>
+              <button className={`nav-link btn btn-link text-start w-100 ${activeTab === "create-course" ? "text-primary fw-bold" : "text-dark"}`} onClick={() => setActiveTab("create-course")}>
                 <i className="bi bi-plus-circle me-2"></i>Create Course
               </button>
             </li>
             <li className="nav-item mb-2">
-              <button className={`nav-link btn btn-link text-start ${activeTab !== "students" ? "text-dark fw-bold" : "text-primary"}`} onClick={() => setActiveTab("students")}>
+              <button className={`nav-link btn btn-link text-start w-100 ${activeTab === "students" ? "text-primary fw-bold" : "text-dark"}`} onClick={() => setActiveTab("students")}>
                 <i className="bi bi-people me-2"></i>Students
               </button>
             </li>
             <li className="nav-item mb-2">
-              <button className={`nav-link btn btn-link text-start ${activeTab !== "quizzes" ? "text-dark fw-bold" : "text-primary"}`} onClick={() => setActiveTab("quizzes")}>
+              <button className={`nav-link btn btn-link text-start w-100 ${activeTab === "quizzes" ? "text-primary fw-bold" : "text-dark"}`} onClick={() => setActiveTab("quizzes")}>
                 <i className="bi bi-question-circle me-2"></i>Quizzes
               </button>
             </li>
             <li className="nav-item mb-2">
-              <button className={`nav-link btn btn-link text-start ${activeTab !== "analytics" ? "text-dark fw-bold" : "text-primary"}`} onClick={() => setActiveTab("analytics")}>
-                <i className="bi bi-bar-chart me-2"></i>Analytics
-              </button>
-            </li>
-            <li className="nav-item mb-2">
-              <button className={`nav-link btn btn-link text-start ${activeTab !== "profile" ? "text-dark fw-bold" : "text-primary"}`} onClick={() => setActiveTab("profile")}>
+              <button className={`nav-link btn btn-link text-start w-100 ${activeTab === "profile" ? "text-primary fw-bold" : "text-dark"}`} onClick={() => setActiveTab("profile")}>
                 <i className="bi bi-person me-2"></i>Profile
               </button>
             </li>
@@ -119,69 +138,105 @@ export default function InstructorDashboard() {
         <div className="flex-grow-1 p-4">
           {activeTab === "dashboard" && (
             <div>
-              <div className="text-white p-5 mb-4 rounded shadow" style={{backgroundColor:'#0DCAF0',color:'white'}}>
-                <h1 className="display-4">Instructor Dashboard</h1>
-                <p className="lead">Manage your courses and students.</p>
+              <div className="text-white p-5 mb-4 rounded shadow" style={{backgroundColor:'#0DCAF0'}}>
+                <h1 className="display-4 fw-bold">Instructor Dashboard</h1>
+                <p className="lead">Manage your professional courses and track student growth.</p>
               </div>
               <div className="row">
                 <div className="col-md-4 mb-4">
-                  <div className="card text-center shadow">
+                  <div className="card text-center shadow border-0 p-3">
                     <div className="card-body">
                       <i className="bi bi-book display-4 text-primary"></i>
-                      <h5 className="card-title">My Courses</h5>
-                      <p className="card-text display-4">{totalCourses}</p>
+                      <h5 className="card-title mt-2">My Courses</h5>
+                      <p className="card-text display-4 fw-bold">{totalCourses}</p>
                     </div>
                   </div>
                 </div>
                 <div className="col-md-4 mb-4">
-                  <div className="card text-center shadow">
+                  <div className="card text-center shadow border-0 p-3">
                     <div className="card-body">
                       <i className="bi bi-people display-4 text-success"></i>
-                      <h5 className="card-title">Total Enrollments</h5>
-                      <p className="card-text display-4">{totalEnrollments}</p>
+                      <h5 className="card-title mt-2">Total Enrollments</h5>
+                      <p className="card-text display-4 fw-bold">{totalEnrollments}</p>
                     </div>
                   </div>
                 </div>
                 <div className="col-md-4 mb-4">
-                  <div className="card text-center shadow">
+                  <div className="card text-center shadow border-0 p-3">
                     <div className="card-body">
                       <i className="bi bi-question-circle display-4 text-warning"></i>
-                      <h5 className="card-title">My Quizzes</h5>
-                      <p className="card-text display-4">{totalQuizzes}</p>
+                      <h5 className="card-title mt-2">My Quizzes</h5>
+                      <p className="card-text display-4 fw-bold">{totalQuizzes}</p>
                     </div>
                   </div>
                 </div>
               </div>
-              <h4>Recent Activity</h4>
-              <p>No recent activity.</p> {/* Placeholder */}
             </div>
           )}
 
-          {activeTab === "courses" && (
+          {activeTab === "all-platform-courses" && (
             <div>
-              <h2 className="mb-4">My Courses</h2>
-              <div className="row">
-                {myCourses.map(course => (
-                  <div key={course.id} className="col-md-6 mb-4">
-                    <div className="card shadow">
-                      <div className="card-body">
-                        <h5 className="card-title">{course.title}</h5>
-                        <p className="card-text">{course.description}</p>
-                        <p className="text-muted">Enrollments: {enrollments.filter(e => e.courseId === course.id).length}</p>
-                      </div>
-                    </div>
+              <h2 className="mb-4 fw-bold text-dark">All Courses on Platform</h2>
+              <div className="row g-4">
+                {courses.map(course => (
+                  <div key={course.id} className="col-md-4">
+                    <CourseCard course={course} onView={(course) => {
+                          setSelectedCourse(course);
+                          setActiveTab("view-course"); 
+                        }}  />
                   </div>
                 ))}
               </div>
             </div>
           )}
 
+
+          {/* --- UPDATED MY COURSES TAB --- */}
+          {activeTab === "courses" && (
+            <div>
+              <h2 className="mb-4 fw-bold">My Published Courses</h2>
+              <div className="row g-4">
+                {myCourses.length > 0 ? (
+                  myCourses.map(course => (
+                    <div key={course.id} className="col-md-6 col-lg-4">
+                      <CourseCard 
+                        course={course} 
+                        // 1. Logic to enter the "Player" view
+                        onView={(course) => {
+                          setSelectedCourse(course);
+                          setActiveTab("view-course"); 
+                        }} 
+                        // 2. Logic to delete the course
+                        onDelete={deleteCourse} 
+                      />
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-5 bg-white rounded shadow-sm">
+                    <p className="text-muted">You haven't created any courses yet.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "view-course" && selectedCourse && (
+            <CoursePlayer 
+              course={selectedCourse} 
+              onBack={() => {
+                setSelectedCourse(null);
+                setActiveTab("courses"); // Goes back to the list
+              }} 
+            />
+          )}
+
+          {/* --- UPDATED CREATE COURSE TAB --- */}
           {activeTab === "create-course" && (
             <div>
-              <h2 className="mb-4">Create New Course</h2>
-              <div className="card shadow">
-                <div className="card-body">
-                  <CourseForm onSubmit={addCourse} />
+              <h2 className="mb-4 fw-bold">Design New Course</h2>
+              <div className="card shadow border-0">
+                <div className="card-body p-4">
+                   <CourseForm onSubmit={addCourse} onCancel={() => setActiveTab("dashboard")} />
                 </div>
               </div>
             </div>
@@ -189,20 +244,23 @@ export default function InstructorDashboard() {
 
           {activeTab === "students" && (
             <div>
-              <h2 className="mb-4">Enrolled Students</h2>
+              <h2 className="mb-4 fw-bold">Enrolled Students</h2>
               {myCourses.map(course => (
-                <div key={course.id} className="mb-4">
-                  <h4>{course.title}</h4>
-                  <div className="row">
-                    {enrollments.filter(e => e.courseId === course.id).map(e => (
-                      <div key={e.userId} className="col-md-4 mb-3">
-                        <div className="card shadow">
-                          <div className="card-body">
-                            <p className="card-text">Student ID: {e.userId}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                <div key={course.id} className="mb-4 p-3 bg-white rounded shadow-sm">
+                  <h4 className="text-primary">{course.title}</h4>
+                  <div className="row mt-3">
+                    {enrollments.filter(e => e.courseId === course.id).length > 0 ? (
+                        enrollments.filter(e => e.courseId === course.id).map(e => (
+                            <div key={e.userId} className="col-md-4 mb-3">
+                              <div className="card border-0 bg-light p-2">
+                                <div className="card-body text-center">
+                                  <i className="bi bi-person-circle fs-3 text-secondary"></i>
+                                  <p className="card-text mt-2 mb-0 small text-muted">Student ID: {e.userId}</p>
+                                </div>
+                              </div>
+                            </div>
+                        ))
+                    ) : <p className="text-muted ms-2">No students enrolled yet.</p>}
                   </div>
                 </div>
               ))}
@@ -211,33 +269,25 @@ export default function InstructorDashboard() {
 
           {activeTab === "quizzes" && (
             <div>
-              <h2 className="mb-4">My Quizzes</h2>
+              <h2 className="mb-4 fw-bold">Quiz Management</h2>
               <div className="row">
                 <div className="col-md-6 mb-4">
-                  <div className="card shadow">
+                  <div className="card shadow border-0">
                     <div className="card-body">
-                      <h5 className="card-title">Create Quiz</h5>
+                      <h5 className="card-title fw-bold mb-3">Create Manual Quiz</h5>
                       <ManualQuizCreatorWrapper courses={myCourses} onCreateQuiz={addQuiz} />
                     </div>
                   </div>
                 </div>
-                <div className="col-md-6 mb-4">
-                  <div className="card shadow">
-                    <div className="card-body">
-                      <h5 className="card-title">Automatic by CSV</h5>
-                      <p className="text-muted">Coming Soon</p>
-                    </div>
-                  </div>
-                </div>
               </div>
-              <h4>My Created Quizzes</h4>
+              <h4 className="mt-4 mb-3">Active Quizzes</h4>
               <div className="row">
                 {myQuizzes.map(quiz => (
                   <div key={quiz.id} className="col-md-4 mb-4">
-                    <div className="card shadow">
+                    <div className="card shadow border-0">
                       <div className="card-body">
-                        <h5 className="card-title">{quiz.title}</h5>
-                        <p className="card-text">Course: {courses.find(c => c.id === quiz.courseId)?.title}</p>
+                        <h6 className="fw-bold">{quiz.title}</h6>
+                        <p className="small text-muted mb-0">Course: {courses.find(c => c.id === quiz.courseId)?.title}</p>
                       </div>
                     </div>
                   </div>
@@ -246,48 +296,16 @@ export default function InstructorDashboard() {
             </div>
           )}
 
-          {activeTab === "analytics" && (
-            <div>
-              <h2 className="mb-4">Analytics</h2>
-              <p>Analytics will be displayed here.</p> {/* Placeholder */}
-            </div>
+          {activeTab === "profile" && (
+            <InstructorProfile />
           )}
-
-{activeTab === "profile" && (
-  <div>
-    <InstructorProfile />
-  </div>
-)}
         </div>
       </div>
     </div>
   );
 }
 
-function CourseForm({ onSubmit }) {
-  const [course, setCourse] = useState({ title: "", description: "" });
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSubmit(course);
-    setCourse({ title: "", description: "" });
-  };
-
-  return (
-    <form onSubmit={handleSubmit}>
-      <div className="mb-3">
-        <label className="form-label">Course Title</label>
-        <input className="form-control" placeholder="Course Title" value={course.title} onChange={(e) => setCourse({ ...course, title: e.target.value })} required />
-      </div>
-      <div className="mb-3">
-        <label className="form-label">Description</label>
-        <textarea className="form-control" placeholder="Description" value={course.description} onChange={(e) => setCourse({ ...course, description: e.target.value })} required />
-      </div>
-      <button className="btn btn-primary">Add Course</button>
-    </form>
-  );
-}
-
+// Wrapper to handle Quiz Creation logic remains largely same but updated to match our ID types
 function ManualQuizCreatorWrapper({ courses, onCreateQuiz }) {
   const [selectedCourseId, setSelectedCourseId] = useState("");
 
@@ -298,10 +316,7 @@ function ManualQuizCreatorWrapper({ courses, onCreateQuiz }) {
     }
     const quiz = {
       courseId: selectedCourseId,
-      title: quizData.title,
-      questions: quizData.questions,
-      totalQuestions: quizData.totalQuestions,
-      createdAt: quizData.createdAt
+      ...quizData
     };
     onCreateQuiz(quiz);
     alert("Quiz created successfully!");
@@ -310,9 +325,9 @@ function ManualQuizCreatorWrapper({ courses, onCreateQuiz }) {
   return (
     <div>
       <div className="mb-3">
-        <label className="form-label">Select Course</label>
-        <select className="form-control" value={selectedCourseId} onChange={(e) => setSelectedCourseId(e.target.value)}>
-          <option value="">Select Course</option>
+        <label className="form-label">Associated Course</label>
+        <select className="form-select" value={selectedCourseId} onChange={(e) => setSelectedCourseId(e.target.value)}>
+          <option value="">Choose a course...</option>
           {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
         </select>
       </div>
