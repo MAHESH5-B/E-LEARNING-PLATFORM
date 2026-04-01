@@ -9,6 +9,7 @@ import InstructorProfile from "./pages/InstructorProfile";
 import Home from "./pages/Home";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
+
 export default function App() {
   return (
     <BrowserRouter>
