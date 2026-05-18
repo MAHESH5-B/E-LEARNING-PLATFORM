@@ -223,6 +223,7 @@ export default function Profile() {
           <p className="profile-subtitle">Manage your profile information</p>
         </div>
         <button
+          type="button"
           className={`btn-edit ${isEditing ? "btn-edit-active" : ""}`}
           onClick={() => (isEditing ? handleCancel() : setIsEditing(true))}
         >
@@ -379,7 +380,7 @@ export default function Profile() {
                   placeholder="Add an interest or skill and press Enter"
                   className="form-input"
                 />
-                <button onClick={addInterest} className="btn-add-interest">
+                <button type="button" onClick={addInterest} className="btn-add-interest">
                   <i className="bi bi-plus-lg"></i> Add
                 </button>
               </div>
@@ -391,6 +392,7 @@ export default function Profile() {
                   <span>{interest}</span>
                   {isEditing && (
                     <button
+                      type="button"
                       onClick={() => removeInterest(interest)}
                       className="btn-remove-interest"
                     >

@@ -59,6 +59,8 @@
   align-items: center;
   margin-bottom: 40px;
   gap: 20px;
+  position: relative;
+  z-index: 2;
 }
 
 .profile-title {
@@ -89,6 +91,8 @@
   cursor: pointer;
   transition: var(--transition);
   box-shadow: var(--shadow-md);
+  position: relative;
+  z-index: 3;
 }
 
 .profile-container::before {
